@@ -29,7 +29,7 @@ namespace Stone_Manager.Classes
         public static string VENDOR_ID = "2C:30:68";
         public static string VENDOR_ID_WS = "00:02:5B";
         public static string DEVICE_NAME = "STONE";
-        public static string deviceAddress = "D0:95:C7:04:8C:78";
+        public static string deviceAddress;
         public static string DeviceName { get; set; }
 
         public static BluetoothClient bluetoothClient = new BluetoothClient();
@@ -39,30 +39,21 @@ namespace Stone_Manager.Classes
 
         public static void Connect()
         {
-            if (string.IsNullOrEmpty(deviceAddress))
-            {
-                MessageBox.Show("Please enter a Bluetooth device address.");
-                return;
-            }
             Main.mainform.Invoke((MethodInvoker)(() =>
             {
-                Main.mainform.label_status.Text = "Searching";
+                Main.mainform.label_status.Text = "Searching For STONE";
             }));
             Thread connectionThread = new Thread(() =>
             {
                 try
                 {
-                    // Parse the device address
-                    BluetoothAddress address = BluetoothAddress.Parse(deviceAddress);
 
-                    // Create a BluetoothClient instance
                     bluetoothClient = new BluetoothClient();
-
-                    // Discover devices (optional)
                     var devices = bluetoothClient.DiscoverDevices();
+                    deviceInfo = devices.FirstOrDefault(d => d.DeviceName == "STONE");
 
-                    // Find the device by address
-                    deviceInfo = devices.FirstOrDefault(d => d.DeviceAddress == address);
+
+                    BluetoothAddress address = deviceInfo.DeviceAddress;
 
                     if (deviceInfo == null)
                     {
@@ -76,11 +67,10 @@ namespace Stone_Manager.Classes
                     {
                         Main.mainform.label_status.Text = "Connecting";
                     }));
-                    // Connect to the device using RFCOMM (Serial Port Profile)
+
                     bluetoothClient.Connect(deviceInfo.DeviceAddress, BluetoothService.RFCommProtocol);
                     bluetoothStream = bluetoothClient.GetStream();
 
-                    // Update UI on successful connection
                     Main.mainform.Invoke((MethodInvoker)(() =>
                     {
                         Main.mainform.label_status.Text = "Connected";
