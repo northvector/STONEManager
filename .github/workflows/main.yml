@@ -4,11 +4,11 @@ on:
   push:
     tags:
       - 'v*.*.*' 
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest 
+    runs-on: windows-latest
 
     steps:
     - name: Checkout Code
@@ -18,10 +18,10 @@ jobs:
       uses: NuGet/setup-nuget@v1.1.1
 
     - name: Restore NuGet Packages
-      run: nuget restore Stone\ Manager.csproj
+      run: nuget restore "Stone Manager.csproj"
 
     - name: Build with MSBuild
-      run: msbuild ./Stone\ Manager.csproj /p:Configuration=Release
+      run: msbuild "Stone Manager.csproj" /p:Configuration=Release
 
     - name: Archive Build
       uses: actions/upload-artifact@v3
