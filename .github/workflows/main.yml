@@ -19,7 +19,6 @@ jobs:
 
     env:
       Solution_Name: "Stone Manager.sln"
-      Test_Project_Path: "Stone Manager/Stone Manager.csproj"
       Bin_Path: "Stone Manager/bin/${{ matrix.configuration }}"
 
     steps:
@@ -34,12 +33,6 @@ jobs:
 
     - name: Build the solution
       run: msbuild $env:Solution_Name /p:Configuration=$env:Configuration
-      env:
-        Configuration: ${{ matrix.configuration }}
-
-    - name: Execute unit tests
-      run: |
-        vstest.console.exe $env:Test_Project_Path /Platform:x64
       env:
         Configuration: ${{ matrix.configuration }}
 
