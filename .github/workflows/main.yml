@@ -1,46 +1,72 @@
-name: Build and Release
+name: .NET Core Desktop
 
 on:
   push:
-    tags:
-      - 'v*.*.*' 
-  workflow_dispatch:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
+
   build:
+
+    strategy:
+      matrix:
+        configuration: [Release]
+
     runs-on: windows-latest
 
+    env:
+      Solution_Name: "Stone Manager.sln"
+      Test_Project_Path: "Stone Manager/Stone Manager.csproj"
+      Bin_Path: "FFMPEG Tools/bin/${{ matrix.configuration }}"
+
     steps:
-    - name: Checkout Code
+    - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Set up NuGet
-      uses: NuGet/setup-nuget@v1.1.1
-
-    - name: Restore NuGet Packages
-      run: nuget restore "Stone Manager/Stone Manager.csproj"
-
-    - name: Build with MSBuild
-      run: msbuild "Stone Manager/Stone Manager.csproj" /p:Configuration=Release
-
-    - name: Archive Build
-      uses: actions/upload-artifact@v3
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v3
       with:
-        name: stone-manager-build
-        path: ./bin/Release
+        dotnet-version: 6.0.x
 
-  release:
-    needs: build
-    runs-on: windows-latest
-    steps:
-    - name: Download Build Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: stone-manager-build
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v1.1
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: './bin/Release/**/*'
+    - name: Execute unit tests
+      run: dotnet test $env:Test_Project_Path
+
+    - name: Restore the application
+      run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        Configuration: ${{ matrix.configuration }}
+
+    - name: Decode the pfx
+      run: |
+        $pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.Base64_Encoded_Pfx }}")
+        $certificatePath = Join-Path -Path $env:GITHUB_WORKSPACE -ChildPath GitHubActionsWorkflow.pfx
+        [IO.File]::WriteAllBytes("$certificatePath", $pfx_cert_byte)
+
+    - name: Create the app package
+      run: msbuild $env:Wap_Project_Path /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:Appx_Package_Build_Mode /p:AppxBundle=$env:Appx_Bundle /p:PackageCertificateKeyFile=GitHubActionsWorkflow.pfx /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
+      env:
+        Appx_Bundle: Always
+        Appx_Bundle_Platforms: x86|x64
+        Appx_Package_Build_Mode: StoreUpload
+        Configuration: ${{ matrix.configuration }}
+
+    - name: Remove the pfx
+      run: Remove-Item -Path $env:GITHUB_WORKSPACE\GitHubActionsWorkflow.pfx
+
+    # Upload the bin directory with updated upload-artifact action
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.4.3
+      with:
+        name: Build_Directory  # Sets the artifact name
+        path: ${{ env.Bin_Path }}/**  # Specifies the path to upload
+        if-no-files-found: warn  # Outputs a warning if files are missing
+        retention-days: 30  # Retain the artifact for 30 days
+        compression-level: 6  # Default compression level
+        overwrite: true  # Overwrites existing artifacts with the same name
+        include-hidden-files: false  # Excludes hidden files
