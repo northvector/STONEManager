@@ -1,4 +1,4 @@
-﻿using OpenRGB.NET;
+using OpenRGB.NET;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,12 +15,22 @@ namespace Stone_Manager.Classes
 {
     internal class OpenRGB
     {
-        OpenRGBClient client = new OpenRGBClient();
+       
+        OpenRGBClient client;
 
         public bool Connect()
         {
-            client.Connect();
-            return client.Connected;
+            try
+            {
+                client = new OpenRGBClient();
+                client.Connect();
+                return client.Connected;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
         }
         public DrawingColor GetFirstDeviceColor()
         {
