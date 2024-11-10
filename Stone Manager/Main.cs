@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -75,11 +75,18 @@ namespace Stone_Manager
         private void Main_Load(object sender, EventArgs e)
         {
             mainform = this;
-            Bluetooth.Connect();
-            if (openRGB.Connect())
+            try
             {
-                OpenRGB_Status = true;
+                Bluetooth.Connect();
+                if (openRGB.Connect())
+                {
+                    OpenRGB_Status = true;
+                }
             }
+            catch (Exception)
+            {
+            }
+
         }
 
         private void trackBar_volume_Scroll(object sender, EventArgs e)
